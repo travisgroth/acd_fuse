@@ -42,6 +42,7 @@ class ACDFS(fuse.Fuse):
     password = None
     session = None
     sessionfile = None
+    cachedir = None
     tempdir = None
 
     dircache = {}
@@ -55,6 +56,7 @@ class ACDFS(fuse.Fuse):
         '''
         fuse.Fuse.__init__(self, *args, **kw)
         self.api = pyacd.api
+
         self.tempdir = os.path.join(tempfile.gettempdir(), myname)
         if not os.path.exists(self.tempdir): os.mkdir(self.tempdir)
         self.sessionfile = os.path.join(self.tempdir, "sessionfile")
@@ -89,6 +91,9 @@ class ACDFS(fuse.Fuse):
         print "Login successful; starting filesystem"
         self.download = self.api.can_device_download()
 
+        if self.cachedir == None: 
+            self.cachedir = self.tempdir
+
         fuse.Fuse.main(self)
 
     def getinfo(self, path):
@@ -120,7 +125,7 @@ class ACDFS(fuse.Fuse):
         self.log.debug(u"cache_path: path %s" % path)
         info = self.getinfo(path)
 
-        return os.path.join(self.tempdir, info.object_id)
+        return os.path.join(self.cachedir, info.object_id)
 
     def check_filecache(self, path):
         '''Determine whether an identical file exists in the filecache
@@ -464,6 +469,9 @@ if __name__ == '__main__':
                          help="PASSWORD password for Amazon Cloud Drive")
     fs.parser.add_option(mountopt="cachefree",
                          help="What percentage of the filecache drive we must keep free (defaults to 10%)")
+    fs.parser.add_option(mountopt="cachedir",
+                         help="Path to use for cache directory (defaults to OS specific default temp directory)")
+
 
     fs.parse(values=fs, errex=1)
 
